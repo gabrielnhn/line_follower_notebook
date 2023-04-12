@@ -16,10 +16,6 @@ def get_contour_data(mask, out):
     and draw all contours on 'out' image
     """
 
-    # erode image (filter excessive brightness noise)
-    kernel = np.ones((5, 5), np.uint8)
-    mask = cv2.erode(mask, kernel, iterations=1)
-
     # get a list of contours
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
@@ -31,7 +27,7 @@ def get_contour_data(mask, out):
     possible_tracks = []
     for contour in contours:
         M = cv2.moments(contour)
-        # Search more about Image Moments on Wikipedia :)
+        # Search more about Image Moments on Wikipedia 🙂 (it's the 'center')
 
         contour_vertices = len(cv2.approxPolyDP(contour, 1.5, True))
 
@@ -39,6 +35,7 @@ def get_contour_data(mask, out):
             continue
 
         if (contour_vertices < MAX_CONTOUR_VERTICES) and (M['m00'] > MIN_AREA_TRACK):
+
             # Contour is part of the track
             line['x'] = int(M["m10"]/M["m00"])
             line['y'] = int(M["m01"]/M["m00"])
@@ -48,18 +45,16 @@ def get_contour_data(mask, out):
             # plot the amount of vertices in light blue
             cv2.drawContours(out, contour, -1, (255,255,0), 2)
 
-            cv2.putText(out, str(contour_vertices), (int(M["m10"]/M["m00"]), int(M["m01"]/M["m00"])),
-                cv2.FONT_HERSHEY_PLAIN, 3, (100,200,150), 2)
+            cv2.putText(out, f"({contour_vertices}){M['m00']}", (int(M["m10"]/M["m00"]), int(M["m01"]/M["m00"])-200),
+                cv2.FONT_HERSHEY_PLAIN, 3, (100,100,255), 2)
 
         else:
             # plot the area in pink
             cv2.drawContours(out, contour, -1, (255,0,255), 2)
             cv2.putText(out, f"({contour_vertices}){M['m00']}", (int(M["m10"]/M["m00"]), int(M["m01"]/M["m00"])),
-                cv2.FONT_HERSHEY_PLAIN, 3, (255,0,255), 2)
+                cv2.FONT_HERSHEY_PLAIN, 3, (100,100,255), 2)
 
     return possible_tracks
-
-
 
 image_path = "glare.jpeg"
 image = cv2.imread(image_path)
@@ -73,9 +68,9 @@ mask = cv2.erode(mask, kernel)
 
 ## SHOW IMAGE ACCORGING TO KERNEL SIZE
 
-data = get_contour_data(mask, image)
+possible_tracks = get_contour_data(mask, image)
 
-for line in data:
+for line in possible_tracks:
     cv2.circle(image, (line['x'], line['y']), 5, (0,255,0), 5)
 
 ## SHOW ALL POSSIBLE TRACKS ACCORDING TO MIN_AREA, MIN_AREA_TRACK and MAX_CONTOUR_VERTICES

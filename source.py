@@ -1,13 +1,10 @@
 import cv2
 import numpy as np
 
-
 # BGR values to filter only the selected color range
 # lower_bgr_values = np.array([185,  190,  191])
 lower_bgr_values = np.array([192,  193,  193])
-
 upper_bgr_values = np.array([255, 255, 255])
-
 
 
 ## User-defined parameters: (Update these values to your liking)
@@ -18,10 +15,7 @@ MIN_AREA = 10000
 # MIN_AREA_TRACK = 60000
 MIN_AREA_TRACK = 30000
 
-
-
-
-def get_contour_data(mask, out):
+def get_contour_data(mask, out, previous_pos):
     """
     Return the centroid of the largest contour in
     the binary image 'mask' (the line)
@@ -29,61 +23,73 @@ def get_contour_data(mask, out):
     (If there are any of these contours),
     and draw all contours on 'out' image
     """
+
+    # erode image (filter excessive brightness noise)
+    kernel = np.ones((5, 5), np.uint8)
+    mask = cv2.erode(mask, kernel, iterations=1)
+
     # get a list of contours
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
     mark = {}
     line = {}
+    over = False
+    tried_once = False
 
+    possible_tracks = []
 
-    for contour in contours:
-        contour_vertices = len(cv2.approxPolyDP(contour, 1.0, True))
+    while not over:
 
-        M = cv2.moments(contour)
-        # Search more about Image Moments on Wikipedia :)
+        for contour in contours:
+            M = cv2.moments(contour)
+            # Search more about Image Moments on Wikipedia :)
 
-        if M['m00'] > MIN_AREA:
-        # if countor.area > MIN_AREA
+            contour_vertices = len(cv2.approxPolyDP(contour, 1.0, True))
+            # print("vertices: ", contour_vertices)
 
-            if (M['m00'] > MIN_AREA_TRACK):
+            if (M['m00'] < MIN_AREA):
+                continue
+
+            if (contour_vertices < MAX_CONTOUR_VERTICES) and (M['m00'] > MIN_AREA_TRACK):
                 # Contour is part of the track
-                line['x'] = int(M["m10"]/M["m00"])
+                line['x'] = crop_w_start + int(M["m10"]/M["m00"])
                 line['y'] = int(M["m01"]/M["m00"])
 
-                # plot the area in light blue
+                possible_tracks.append(line)
+
+                # plot the amount of vertices in light blue
                 cv2.drawContours(out, contour, -1, (255,255,0), 1)
                 # cv2.putText(out, str(M['m00']), (int(M["m10"]/M["m00"]), int(M["m01"]/M["m00"])),
-                #     cv2.FONT_HERSHEY_PLAIN, 2, (255,255,0), 2)
-                cv2.putText(out, f"LEN: {contour_vertices}", (int(M["m10"]/M["m00"]), int(M["m01"]/M["m00"])),
-                    cv2.FONT_HERSHEY_PLAIN, 2, (255,255,0), 2)
+                #     cv2.FONT_HERSHEY_PLAIN, 2/(RESIZE_SIZE/3), (100,200,150), 1)
+
+                cv2.putText(out, str(contour_vertices), (int(M["m10"]/M["m00"]), int(M["m01"]/M["m00"])),
+                    cv2.FONT_HERSHEY_PLAIN, 2/(RESIZE_SIZE/3), (100,200,150), 1)
 
             else:
-                # Contour is a track mark
-                if (not mark) or (mark['y'] > int(M["m01"]/M["m00"])):
-                    # if there are more than one mark, consider only
-                    # the one closest to the robot
-                    mark['y'] = int(M["m01"]/M["m00"])
-                    mark['x'] = int(M["m10"]/M["m00"])
+                # plot the area in pink
+                cv2.drawContours(out, contour, -1, (255,0,255), 1)
+                cv2.putText(out, f"{contour_vertices}-{M['m00']}", (int(M["m10"]/M["m00"]), int(M["m01"]/M["m00"])),
+                    cv2.FONT_HERSHEY_PLAIN, 2/(RESIZE_SIZE/3), (255,0,255), 2)
 
-                    # plot the area in pink
-                    cv2.drawContours(out, contour, -1, (255,0,255), 1)
-                    cv2.putText(out, str(M['m00']), (int(M["m10"]/M["m00"]), int(M["m01"]/M["m00"])),
-                        cv2.FONT_HERSHEY_PLAIN, 2, (255,0,255), 2)
+        if line:
+            over = True
 
+        # Did not find the line. Try eroding more?
+        elif not tried_once:
+            mask = cv2.erode(mask, kernel, iterations=1)
+            contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+            tried_once = True
 
-    if mark and line:
-    # if both contours exist
-        if mark['x'] > line['x']:
-            mark_side = "right"
+        # Did not find anything
         else:
-            mark_side = "left"
+            over = True
+
+    if not possible_tracks:
+        chosen_line = None
     else:
-        mark_side = None
+        chosen_line = min(possible_tracks, key=lambda line: abs(line["x"] - previous_pos))
 
-
-    return (line, mark_side)
-
-
+    return chosen_line
 
 
 image_path = "bosta.png"

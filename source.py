@@ -39,6 +39,8 @@ def get_contour_data(mask, out):
             continue
 
         if (contour_vertices < MAX_CONTOUR_VERTICES) and (M['m00'] > MIN_AREA_TRACK):
+        # if False:
+
             # Contour is part of the track
             line['x'] = int(M["m10"]/M["m00"])
             line['y'] = int(M["m01"]/M["m00"])
@@ -48,14 +50,14 @@ def get_contour_data(mask, out):
             # plot the amount of vertices in light blue
             cv2.drawContours(out, contour, -1, (255,255,0), 2)
 
-            cv2.putText(out, str(contour_vertices), (int(M["m10"]/M["m00"]), int(M["m01"]/M["m00"])),
-                cv2.FONT_HERSHEY_PLAIN, 3, (100,200,150), 2)
+            cv2.putText(out, f"({contour_vertices}){M['m00']}", (int(M["m10"]/M["m00"]), int(M["m01"]/M["m00"])-200),
+                cv2.FONT_HERSHEY_PLAIN, 3, (100,100,255), 2)
 
         else:
             # plot the area in pink
             cv2.drawContours(out, contour, -1, (255,0,255), 2)
             cv2.putText(out, f"({contour_vertices}){M['m00']}", (int(M["m10"]/M["m00"]), int(M["m01"]/M["m00"])),
-                cv2.FONT_HERSHEY_PLAIN, 3, (255,0,255), 2)
+                cv2.FONT_HERSHEY_PLAIN, 3, (100,100,255), 2)
 
     return possible_tracks
 
@@ -65,19 +67,26 @@ image_path = "glare.jpeg"
 image = cv2.imread(image_path)
 mask = cv2.inRange(image, lower_bgr_values, upper_bgr_values)
 
+cv2.imwrite("before.png", mask)
+
 ## SHOW IMAGE ACCORGING TO COLOR THRESHOLDS
 
 
 kernel = np.ones((ERODE_KERNEL_SIZE, ERODE_KERNEL_SIZE), np.uint8)
 mask = cv2.erode(mask, kernel)
 
+cv2.imwrite("after.png", mask)
+
+
 ## SHOW IMAGE ACCORGING TO KERNEL SIZE
 
 data = get_contour_data(mask, image)
 
-for line in data:
-    cv2.circle(image, (line['x'], line['y']), 5, (0,255,0), 5)
 
+for line in data:
+    cv2.circle(image, (line['x'], line['y']), 5, (100,100,0), 5)
+
+cv2.imwrite("contours.png", image)
 ## SHOW ALL POSSIBLE TRACKS ACCORDING TO MIN_AREA, MIN_AREA_TRACK and MAX_CONTOUR_VERTICES
 
 cv2.imshow("image", image)

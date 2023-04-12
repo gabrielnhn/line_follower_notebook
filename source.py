@@ -14,8 +14,9 @@ MIN_AREA = 10000
 # Minimum size for a contour to be considered part of the track
 # MIN_AREA_TRACK = 60000
 MIN_AREA_TRACK = 30000
+MAX_CONTOUR_VERTICES = 30
 
-def get_contour_data(mask, out, previous_pos):
+def get_contour_data(mask, out):
     """
     Return the centroid of the largest contour in
     the binary image 'mask' (the line)
@@ -59,17 +60,15 @@ def get_contour_data(mask, out, previous_pos):
 
                 # plot the amount of vertices in light blue
                 cv2.drawContours(out, contour, -1, (255,255,0), 1)
-                # cv2.putText(out, str(M['m00']), (int(M["m10"]/M["m00"]), int(M["m01"]/M["m00"])),
-                #     cv2.FONT_HERSHEY_PLAIN, 2/(RESIZE_SIZE/3), (100,200,150), 1)
 
                 cv2.putText(out, str(contour_vertices), (int(M["m10"]/M["m00"]), int(M["m01"]/M["m00"])),
-                    cv2.FONT_HERSHEY_PLAIN, 2/(RESIZE_SIZE/3), (100,200,150), 1)
+                    cv2.FONT_HERSHEY_PLAIN, 3, (100,200,150), 1)
 
             else:
                 # plot the area in pink
                 cv2.drawContours(out, contour, -1, (255,0,255), 1)
                 cv2.putText(out, f"{contour_vertices}-{M['m00']}", (int(M["m10"]/M["m00"]), int(M["m01"]/M["m00"])),
-                    cv2.FONT_HERSHEY_PLAIN, 2/(RESIZE_SIZE/3), (255,0,255), 2)
+                    cv2.FONT_HERSHEY_PLAIN, 3, (255,0,255), 2)
 
         if line:
             over = True
@@ -86,13 +85,11 @@ def get_contour_data(mask, out, previous_pos):
 
     if not possible_tracks:
         chosen_line = None
-    else:
-        chosen_line = min(possible_tracks, key=lambda line: abs(line["x"] - previous_pos))
 
     return chosen_line
 
 
-image_path = "bosta.png"
+image_path = "glare.jpeg"
 
 image = cv2.imread(image_path)
 

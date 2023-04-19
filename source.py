@@ -43,15 +43,15 @@ def get_contour_data(mask, out):
             possible_tracks.append(line)
 
             # plot the amount of vertices in light blue
-            cv2.drawContours(out, contour, -1, (255,255,0), 2)
+            cv2.drawContours(out, contour, -1, (255,0,0), 4)
 
-            cv2.putText(out, f"({contour_vertices}){M['m00']}", (int(M["m10"]/M["m00"]), int(M["m01"]/M["m00"])-200),
+            cv2.putText(out, f"Track", (int(M["m10"]/M["m00"]), int(M["m01"]/M["m00"])-200),
                 cv2.FONT_HERSHEY_PLAIN, 3, (100,100,255), 2)
 
         else:
             # plot the area in pink
-            cv2.drawContours(out, contour, -1, (255,0,255), 2)
-            cv2.putText(out, f"({contour_vertices}){M['m00']}", (int(M["m10"]/M["m00"]), int(M["m01"]/M["m00"])),
+            cv2.drawContours(out, contour, -1, (255,0,255), 4)
+            cv2.putText(out, f"Ignored", (int(M["m10"]/M["m00"]), int(M["m01"]/M["m00"])),
                 cv2.FONT_HERSHEY_PLAIN, 3, (100,100,255), 2)
 
     return possible_tracks
